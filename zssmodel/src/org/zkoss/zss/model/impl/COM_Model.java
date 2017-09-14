@@ -1,11 +1,14 @@
 package org.zkoss.zss.model.impl;
 
+import org.model.AutoRollbackConnection;
 import org.model.DBContext;
 import org.zkoss.zss.model.CellRegion;
 import org.zkoss.zss.model.SSheet;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -105,5 +108,54 @@ public class COM_Model extends Model {
     @Override
     public boolean deleteTableRows(DBContext context, CellRegion cellRegion) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateRowSize(DBContext context, int row, int height){
+        StringBuffer update = new StringBuffer("WITH upsert AS ( UPDATE ")
+                .append(tableName)
+                .append(" SET data = ? WHERE row = ? AND col = ? RETURNING *) INSERT INTO ")
+                .append(tableName)
+                .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
+
+        AutoRollbackConnection connection = context.getConnection();
+        try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
+
+            stmt.setInt(1, height);
+            stmt.setInt(2, row);
+            stmt.setInt(3, -1);
+            stmt.setInt(4, row);
+            stmt.setInt(5, -1);
+            stmt.setInt(6, height);
+            stmt.execute();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void updateColSize(DBContext context, int col, int width) {
+
+        StringBuffer update = new StringBuffer("WITH upsert AS ( UPDATE ")
+                .append(tableName)
+                .append(" SET data = ? WHERE row = ? AND col = ? RETURNING *) INSERT INTO ")
+                .append(tableName)
+                .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
+
+        AutoRollbackConnection connection = context.getConnection();
+        try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
+            stmt.setInt(1, width);
+            stmt.setInt(2, -1);
+            stmt.setInt(3, col);
+            stmt.setInt(4, -1);
+            stmt.setInt(5, col);
+            stmt.setInt(6, width);
+            stmt.execute();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

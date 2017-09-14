@@ -475,4 +475,53 @@ public class TOM_Model extends Model {
     public boolean deleteTableColumns(DBContext dbContext, CellRegion cellRegion) {
         return false;
     }
+
+    @Override
+    public void updateRowSize(DBContext context, int row, int height){
+        StringBuffer update = new StringBuffer("WITH upsert AS ( UPDATE ")
+                .append(tableName)
+                .append(" SET data = ? WHERE row = ? AND col = ? RETURNING *) INSERT INTO ")
+                .append(tableName)
+                .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
+
+        AutoRollbackConnection connection = context.getConnection();
+        try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
+
+            stmt.setInt(1, height);
+            stmt.setInt(2, row);
+            stmt.setInt(3, -1);
+            stmt.setInt(4, row);
+            stmt.setInt(5, -1);
+            stmt.setInt(6, height);
+            stmt.execute();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void updateColSize(DBContext context, int col, int width) {
+
+        StringBuffer update = new StringBuffer("WITH upsert AS ( UPDATE ")
+                .append(tableName)
+                .append(" SET data = ? WHERE row = ? AND col = ? RETURNING *) INSERT INTO ")
+                .append(tableName)
+                .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
+
+        AutoRollbackConnection connection = context.getConnection();
+        try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
+            stmt.setInt(1, width);
+            stmt.setInt(2, -1);
+            stmt.setInt(3, col);
+            stmt.setInt(4, -1);
+            stmt.setInt(5, col);
+            stmt.setInt(6, width);
+            stmt.execute();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

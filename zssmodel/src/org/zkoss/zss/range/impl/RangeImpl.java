@@ -16,15 +16,11 @@ Copyright (C) 2013 Potix Corporation. All Rights Reserved.
 */
 package org.zkoss.zss.range.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.model.AutoRollbackConnection;
+import org.model.DBContext;
 import org.model.DBHandler;
 import org.zkoss.lang.Strings;
 import org.zkoss.poi.ss.usermodel.ZssContext;
@@ -667,12 +663,15 @@ public class RangeImpl implements SRange {
 			SSheet sheet = r.getSheet();
 			int maxcol = sheet.getBook().getMaxColumnIndex();
 			CellRegion region = r.getRegion();
-			
+
+			Vector<Integer> rowHeightVect = new Vector<Integer>();
 			for (int i = region.row; i <= region.lastRow; i++) {
 				SRow row = sheet.getRow(i);
 				if(heightPx!=null){
 					row.setHeight(heightPx);
+					updateRowSizetoDB(i,heightPx); // updated row height to DB
 				}
+
 				if(hidden!=null){
 					row.setHidden(hidden);
 				}
@@ -681,11 +680,22 @@ public class RangeImpl implements SRange {
 				}
 				notifySet.add(new SheetRegion(sheet,i,0,i,maxcol));
 			}
+
 		}
 
 		new NotifyChangeHelper().notifyRowColumnSizeChange(notifySet);
 		new NotifyChangeHelper().notifyCellChange(notifySet, CellAttribute.ALL); //ZSS-666
 			// ZSS-944, General format number change precision per the row height for 90deg text
+	}
+
+	private void updateRowSizetoDB(int i, int height) {
+
+		getSheet().getBook().checkDBSchema();
+		try(AutoRollbackConnection connection = DBHandler.instance.getConnection())
+		{
+			getSheet().getDataModel().updateRowSize(new DBContext(connection), i,height);
+			connection.commit();
+		}
 	}
 
 	@Override
@@ -718,12 +728,15 @@ public class RangeImpl implements SRange {
 			SSheet sheet = r.getSheet();
 			int maxrow = sheet.getBook().getMaxRowIndex();
 			CellRegion region = r.getRegion();
-			
+
+			Vector<Integer> columnWidthVect = new Vector<Integer>();
 			for (int i = region.column; i <= region.lastColumn; i++) {
 				SColumn column = sheet.getColumn(i);
 				if(widthPx!=null){
 					column.setWidth(widthPx);
+					updateColSizetoDB(i,widthPx); // update column width to DB
 				}
+
 				if(hidden!=null){
 					column.setHidden(hidden);
 				}
@@ -732,10 +745,22 @@ public class RangeImpl implements SRange {
 				}
 				notifySet.add(new SheetRegion(sheet,0,i,maxrow,i));
 			}
+
+
 		}
 		new NotifyChangeHelper().notifyRowColumnSizeChange(notifySet);
 		new NotifyChangeHelper().notifyCellChange(notifySet, CellAttribute.ALL); //ZSS-666
 			// ZSS-939, must use CellAttribute.ALL; General format number change precision per the column width
+	}
+
+	private void updateColSizetoDB(int i, int width) {
+
+		getSheet().getBook().checkDBSchema();
+		try(AutoRollbackConnection connection = DBHandler.instance.getConnection())
+		{
+			getSheet().getDataModel().updateColSize(new DBContext(connection), i,width);
+			connection.commit();
+		}
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import org.zkoss.zss.model.SSheet;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Collection;
+import java.util.Vector;
 
 public abstract class Model {
     protected String tableName;
@@ -90,6 +91,10 @@ public abstract class Model {
     public abstract void importSheet(Reader reader, char delimiter) throws IOException;
 
     public abstract boolean deleteTableColumns(DBContext dbContext, CellRegion cellRegion);
+
+    public abstract void updateColSize(DBContext dbContext, int i, int width);
+
+    public abstract void updateRowSize(DBContext dbContext, int i, int height);
 
     //
     public enum ModelType {
