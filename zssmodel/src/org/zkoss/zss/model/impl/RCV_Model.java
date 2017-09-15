@@ -14,6 +14,7 @@ import org.zkoss.zss.model.SSheet;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -383,15 +384,19 @@ public class RCV_Model extends Model {
                 .append(tableName)
                 .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
 
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(height);
+        byte[] result = b.array();
+
         AutoRollbackConnection connection = context.getConnection();
         try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
 
-                stmt.setInt(1, Integer.valueOf(height).byteValue());
+                stmt.setBytes(1, result);//.setInt(1,Integer.valueOf(height).byteValue())
                 stmt.setInt(2, row);
                 stmt.setInt(3, -1);
                 stmt.setInt(4, row);
                 stmt.setInt(5, -1);
-                stmt.setInt(6, Integer.valueOf(height).byteValue());
+                stmt.setBytes(6, result);//.setInt(6, Integer.valueOf(height).byteValue());
                 stmt.execute();
 
 
@@ -408,15 +413,18 @@ public class RCV_Model extends Model {
                 .append(" SET data = ? WHERE row = ? AND col = ? RETURNING *) INSERT INTO ")
                 .append(tableName)
                 .append(" (row,col,data) SELECT ?,?,? WHERE NOT EXISTS (SELECT * FROM upsert)");
+        ByteBuffer b = ByteBuffer.allocate(4);
+        b.putInt(width);
+        byte[] result = b.array();
 
         AutoRollbackConnection connection = context.getConnection();
         try (PreparedStatement stmt = connection.prepareStatement(update.toString())) {
-            stmt.setInt(1, Integer.valueOf(width).byteValue());
+            stmt.setBytes(1, result);//.setInt(1, Integer.valueOf(width).byteValue());
             stmt.setInt(2, -1);
             stmt.setInt(3, col);
             stmt.setInt(4, -1);
             stmt.setInt(5, col);
-            stmt.setInt(6, Integer.valueOf(width).byteValue());
+            stmt.setBytes(6, result);//.setInt(6, Integer.valueOf(width).byteValue());
             stmt.execute();
 
         } catch (SQLException e) {
